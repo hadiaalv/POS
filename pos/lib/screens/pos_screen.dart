@@ -8,9 +8,9 @@ import '../widgets/category_button.dart';
 import '../widgets/menu_item_card.dart';
 import '../widgets/cart_item_row.dart';
 import '../utils/bill_printer.dart';
+import '../utils/constants.dart';
 import 'sales_report_screen.dart';
 import 'menu_management_screen.dart';
-import '../utils/constants.dart';
 
 class POSScreen extends StatelessWidget {
   const POSScreen({super.key});
@@ -18,25 +18,25 @@ class POSScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF2F2F2),
       appBar: AppBar(
         backgroundColor: const Color(AppConstants.primaryColorValue),
         foregroundColor: Colors.white,
         title: const Text(
           AppConstants.shopName,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.2),
         ),
         actions: [
           TextButton.icon(
             onPressed: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const SalesReportScreen())),
-            icon: const Icon(Icons.bar_chart, color: Colors.white),
+            icon: const Icon(Icons.bar_chart, color: Colors.white, size: 20),
             label: const Text('Reports', style: TextStyle(color: Colors.white)),
           ),
           TextButton.icon(
             onPressed: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const MenuManagementScreen())),
-            icon: const Icon(Icons.menu_book, color: Colors.white),
+            icon: const Icon(Icons.menu_book, color: Colors.white, size: 20),
             label: const Text('Menu', style: TextStyle(color: Colors.white)),
           ),
           const SizedBox(width: 8),
@@ -44,50 +44,35 @@ class POSScreen extends StatelessWidget {
       ),
       body: Row(
         children: [
-          // ── LEFT PANEL: Customer + Menu ──
+          // ── LEFT: Menu Panel ──
           Expanded(
             flex: 6,
             child: Column(
               children: [
-                // Customer form
                 const CustomerForm(),
-
-                // Category buttons
                 const _CategoryBar(),
-
-                // Menu items grid
                 const Expanded(child: _MenuGrid()),
               ],
             ),
           ),
 
-          // Divider
-          Container(width: 2, color: Colors.grey.shade300),
+          Container(width: 1.5, color: Colors.grey.shade300),
 
-          // ── RIGHT PANEL: Cart ──
+          // ── RIGHT: Cart Panel ──
           Expanded(
             flex: 4,
             child: Column(
               children: [
-                // Cart header
                 Container(
-                  padding: const EdgeInsets.all(12),
-                  color: const Color(AppConstants.primaryColorValue),
                   width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  color: const Color(AppConstants.primaryColorValue),
                   child: const Text(
                     'Current Order',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
-
-                // Cart items list
                 const Expanded(child: _CartList()),
-
-                // Order summary + checkout
                 const _OrderSummary(),
               ],
             ),
@@ -98,7 +83,7 @@ class POSScreen extends StatelessWidget {
   }
 }
 
-// ─── Category Bar ─────────────────────────────────────────────────────────────
+// ─── Scrollable Category Bar ──────────────────────────────────────────────────
 
 class _CategoryBar extends StatelessWidget {
   const _CategoryBar();
@@ -106,22 +91,26 @@ class _CategoryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<MenuProvider>(
-      builder: (context, menuProvider, _) {
+      builder: (context, menu, _) {
         return Container(
           color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             children: [
-              const Text(
-                'Category: ',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              const Text('Category: ',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: menu.categories.map((cat) => CategoryButton(
+                      label: cat.name,
+                      isSelected: menu.selectedCategory?.id == cat.id,
+                      onTap: () => menu.selectCategory(cat),
+                    )).toList(),
+                  ),
+                ),
               ),
-              const SizedBox(width: 8),
-              ...menuProvider.categories.map((cat) => CategoryButton(
-                    label: cat.name,
-                    isSelected: menuProvider.selectedCategory?.id == cat.id,
-                    onTap: () => menuProvider.selectCategory(cat),
-                  )),
             ],
           ),
         );
@@ -142,18 +131,18 @@ class _MenuGrid extends StatelessWidget {
         if (menu.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
-
         if (menu.currentItems.isEmpty) {
-          return const Center(child: Text('No items in this category.'));
+          return const Center(
+              child: Text('No items in this category.',
+                  style: TextStyle(color: Colors.grey)));
         }
-
         return GridView.builder(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
-            mainAxisExtent: 90,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+            maxCrossAxisExtent: 170,
+            mainAxisExtent: 88,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
           ),
           itemCount: menu.currentItems.length,
           itemBuilder: (context, index) {
@@ -183,18 +172,15 @@ class _CartList extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.shopping_cart_outlined,
-                    size: 64, color: Colors.grey.shade400),
-                const SizedBox(height: 12),
-                Text('No items yet',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+                Icon(Icons.shopping_cart_outlined, size: 56, color: Colors.grey.shade300),
+                const SizedBox(height: 10),
+                Text('No items added', style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
               ],
             ),
           );
         }
-
         return ListView.separated(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(6),
           itemCount: cart.items.length,
           separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, index) {
@@ -203,7 +189,7 @@ class _CartList extends StatelessWidget {
               item: item,
               onIncrement: () => cart.incrementItem(item.menuItemId),
               onDecrement: () => cart.decrementItem(item.menuItemId),
-              onRemove: () => cart.removeItem(item.menuItemId),
+              onRemove:    () => cart.removeItem(item.menuItemId),
             );
           },
         );
@@ -212,7 +198,7 @@ class _CartList extends StatelessWidget {
   }
 }
 
-// ─── Order Summary ────────────────────────────────────────────────────────────
+// ─── Order Summary + Checkout ─────────────────────────────────────────────────
 
 class _OrderSummary extends StatefulWidget {
   const _OrderSummary();
@@ -237,77 +223,68 @@ class _OrderSummaryState extends State<_OrderSummary> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            offset: const Offset(0, -2),
-            blurRadius: 6,
-          )
-        ],
+        boxShadow: [BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          offset: const Offset(0, -2),
+          blurRadius: 6,
+        )],
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _summaryRow('Subtotal', 'Rs. ${cart.subtotal.toStringAsFixed(0)}'),
+          _row('Subtotal', 'Rs. ${cart.subtotal.toStringAsFixed(0)}'),
           const SizedBox(height: 6),
 
-          // Delivery charges input
+          // Delivery charge input
           Row(
             children: [
-              const Text('Delivery: ', style: TextStyle(fontSize: 15)),
+              const Text('Delivery Charges:', style: TextStyle(fontSize: 14)),
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _deliveryCtrl,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
                     isDense: true,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    border: OutlineInputBorder(),
                     prefixText: 'Rs. ',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    border: OutlineInputBorder(),
                   ),
-                  onChanged: (v) {
-                    final amount = double.tryParse(v) ?? 0;
-                    cart.setDeliveryCharges(amount);
-                  },
+                  onChanged: (v) => cart.setDeliveryCharges(double.tryParse(v) ?? 0),
                 ),
               ),
             ],
           ),
 
-          const Divider(height: 16),
+          const Divider(height: 14),
 
-          // Total
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('TOTAL',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text('TOTAL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               Text(
                 'Rs. ${cart.total.toStringAsFixed(0)}',
                 style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 20, fontWeight: FontWeight.bold,
                   color: Color(AppConstants.primaryColorValue),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 10),
 
-          // Action buttons
           Row(
             children: [
-              // Clear button
+              // Clear
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(Icons.delete_outline, size: 18),
                   label: const Text('Clear'),
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 52),
+                    minimumSize: const Size(0, 48),
                     foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
                   ),
                   onPressed: () {
                     _deliveryCtrl.text = '0';
@@ -317,20 +294,18 @@ class _OrderSummaryState extends State<_OrderSummary> {
               ),
               const SizedBox(width: 8),
 
-              // Print & Save button
+              // Print Bill
               Expanded(
                 flex: 2,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.print),
+                  icon: const Icon(Icons.print, size: 18),
                   label: const Text('Print Bill'),
                   style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(0, 52),
+                    minimumSize: const Size(0, 48),
                     backgroundColor: const Color(AppConstants.primaryColorValue),
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: cart.items.isEmpty
-                      ? null
-                      : () => _handlePrintBill(context, cart),
+                  onPressed: cart.items.isEmpty ? null : () => _handlePrint(context, cart),
                 ),
               ),
             ],
@@ -340,53 +315,44 @@ class _OrderSummaryState extends State<_OrderSummary> {
     );
   }
 
-  Widget _summaryRow(String label, String value) {
+  Widget _row(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 15)),
-        Text(value,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        Text(label, style: const TextStyle(fontSize: 14)),
+        Text(value,  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
       ],
     );
   }
 
-  Future<void> _handlePrintBill(BuildContext context, CartProvider cart) async {
-    // Validate customer info
+  Future<void> _handlePrint(BuildContext context, CartProvider cart) async {
     if (cart.customerName.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter customer name before printing.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please enter customer name first.'),
+        backgroundColor: Colors.orange,
+      ));
       return;
     }
 
     try {
-      // Save order to DB
       await cart.placeOrder();
-
-      // Print bill
       await BillPrinter.printBill(cart);
 
-      // Clear cart after print
       _deliveryCtrl.text = '0';
       cart.clearCart();
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Order saved and bill sent to printer!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('✓ Order saved & bill sent to printer!'),
+          backgroundColor: Colors.green,
+        ));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ));
       }
     }
   }

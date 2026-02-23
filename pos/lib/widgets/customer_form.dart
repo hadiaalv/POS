@@ -11,10 +11,10 @@ class CustomerForm extends StatefulWidget {
 }
 
 class _CustomerFormState extends State<CustomerForm> {
-  final _phoneCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController();
+  final _phoneCtrl   = TextEditingController();
+  final _nameCtrl    = TextEditingController();
   final _addressCtrl = TextEditingController();
-  bool _isLookingUp = false;
+  bool _isLookingUp  = false;
   bool _customerLoaded = false;
 
   @override
@@ -30,45 +30,36 @@ class _CustomerFormState extends State<CustomerForm> {
     if (phone.isEmpty) return;
 
     setState(() => _isLookingUp = true);
-
     final found = await cart.lookupCustomer(phone);
 
     if (found) {
-      // Auto-fill name and address
-      _nameCtrl.text = cart.customerName;
+      _nameCtrl.text    = cart.customerName;
       _addressCtrl.text = cart.customerAddress;
       setState(() => _customerLoaded = true);
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Customer found: ${cart.customerName}'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('✓ Customer found: ${cart.customerName}'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ));
       }
     } else {
       _nameCtrl.clear();
       _addressCtrl.clear();
       setState(() => _customerLoaded = false);
     }
-
     setState(() => _isLookingUp = false);
   }
 
   void _applyCustomerInfo(CartProvider cart) {
-    cart.setCustomerDetails(
-      _nameCtrl.text.trim(),
-      _addressCtrl.text.trim(),
-    );
+    cart.setCustomerDetails(_nameCtrl.text.trim(), _addressCtrl.text.trim());
   }
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
 
-    // Sync text fields if cart was cleared
+    // Clear form fields when cart is cleared externally
     if (cart.customerPhone.isEmpty && _phoneCtrl.text.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _phoneCtrl.clear();
@@ -79,19 +70,18 @@ class _CustomerFormState extends State<CustomerForm> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Customer Info',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
+          const Text('Customer Info',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
           const SizedBox(height: 8),
+
           Row(
             children: [
-              // Phone field
+              // Phone
               Expanded(
                 flex: 3,
                 child: TextField(
@@ -99,11 +89,12 @@ class _CustomerFormState extends State<CustomerForm> {
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
                     labelText: 'Phone Number',
-                    hintText: 'e.g. 03001234567',
+                    hintText: '03001234567',
                     border: const OutlineInputBorder(),
                     isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                     suffixIcon: _customerLoaded
-                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
                         : null,
                   ),
                   onSubmitted: (_) => _lookupPhone(cart),
@@ -113,30 +104,25 @@ class _CustomerFormState extends State<CustomerForm> {
 
               // Lookup button
               SizedBox(
-                height: 48,
+                height: 44,
                 child: ElevatedButton.icon(
                   onPressed: _isLookingUp ? null : () => _lookupPhone(cart),
                   icon: _isLookingUp
                       ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.search),
+                          width: 14, height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.search, size: 18),
                   label: const Text('Lookup'),
                   style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(0, 48),
+                    minimumSize: const Size(90, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                 ),
               ),
-            ],
-          ),
 
-          const SizedBox(height: 8),
+              const SizedBox(width: 8),
 
-          Row(
-            children: [
-              // Name field
+              // Name
               Expanded(
                 flex: 3,
                 child: TextField(
@@ -145,21 +131,24 @@ class _CustomerFormState extends State<CustomerForm> {
                     labelText: 'Customer Name',
                     border: OutlineInputBorder(),
                     isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                   ),
                   onChanged: (_) => _applyCustomerInfo(cart),
                 ),
               ),
+
               const SizedBox(width: 8),
 
-              // Address field
+              // Address
               Expanded(
                 flex: 4,
                 child: TextField(
                   controller: _addressCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Address',
+                    labelText: 'Address / Area',
                     border: OutlineInputBorder(),
                     isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                   ),
                   onChanged: (_) => _applyCustomerInfo(cart),
                 ),

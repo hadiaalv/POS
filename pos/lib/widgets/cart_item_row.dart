@@ -19,66 +19,50 @@ class CartItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final priceStr = item.price == 0 ? '---' : 'Rs. ${item.price.toStringAsFixed(0)}';
+    final totalStr = item.price == 0 ? '---' : 'Rs. ${item.total.toStringAsFixed(0)}';
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
       child: Row(
         children: [
-          // Item info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  'Rs. ${item.price.toStringAsFixed(0)} each',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                ),
+                Text(item.name,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+                Text(priceStr,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
               ],
             ),
           ),
-
-          // Quantity controls
-          Row(
-            children: [
-              _qtyBtn(Icons.remove, onDecrement, Colors.orange),
-              Container(
-                width: 36,
-                alignment: Alignment.center,
-                child: Text(
-                  '${item.quantity}',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-              _qtyBtn(Icons.add, onIncrement, const Color(AppConstants.primaryColorValue)),
-            ],
+          // Qty controls
+          _qtyBtn(Icons.remove, onDecrement, Colors.orange.shade700),
+          Container(
+            width: 32,
+            alignment: Alignment.center,
+            child: Text('${item.quantity}',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           ),
+          _qtyBtn(Icons.add, onIncrement, const Color(AppConstants.primaryColorValue)),
 
-          const SizedBox(width: 8),
-
-          // Total price
+          const SizedBox(width: 6),
           SizedBox(
-            width: 70,
-            child: Text(
-              'Rs. ${item.total.toStringAsFixed(0)}',
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.right,
-            ),
+            width: 72,
+            child: Text(totalStr,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.right),
           ),
-
-          // Remove button
-          IconButton(
-            onPressed: onRemove,
-            icon: const Icon(Icons.close, color: Colors.red, size: 18),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          InkWell(
+            onTap: onRemove,
+            borderRadius: BorderRadius.circular(4),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(Icons.close, color: Colors.red, size: 16),
+            ),
           ),
         ],
       ),
@@ -90,13 +74,10 @@ class CartItemRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(4),
       child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Icon(icon, color: Colors.white, size: 16),
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+        child: Icon(icon, color: Colors.white, size: 14),
       ),
     );
   }

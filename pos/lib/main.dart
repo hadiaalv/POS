@@ -6,24 +6,22 @@ import 'database/db_helper.dart';
 import 'providers/cart_provider.dart';
 import 'providers/menu_provider.dart';
 import 'screens/pos_screen.dart';
-import 'utils/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize SQLite for Windows/Linux/macOS desktop
+  // Required for Windows/Linux/macOS desktop
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  // Initialize database and seed default data
   await DBHelper.instance.database;
   await DBHelper.instance.seedDefaultData();
 
-  runApp(const POSApp());
+  runApp(const DKFoodsApp());
 }
 
-class POSApp extends StatelessWidget {
-  const POSApp({super.key});
+class DKFoodsApp extends StatelessWidget {
+  const DKFoodsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -33,18 +31,18 @@ class POSApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: MaterialApp(
-        title: AppConstants.shopName,
+        title: 'DK Foods POS',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFFE53935),
-            brightness: Brightness.light,
+            seedColor: const Color(0xFFB71C1C),
           ),
           useMaterial3: true,
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              minimumSize: const Size(80, 60),
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              minimumSize: const Size(80, 52),
+              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ),

@@ -17,7 +17,7 @@ class CategoryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.only(right: 8),
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
@@ -25,13 +25,14 @@ class CategoryButton extends StatelessWidget {
               ? const Color(AppConstants.primaryColorValue)
               : Colors.grey.shade200,
           foregroundColor: isSelected ? Colors.white : Colors.black87,
-          minimumSize: const Size(100, 48),
-          elevation: isSelected ? 4 : 0,
+          minimumSize: const Size(90, 44),
+          elevation: isSelected ? 3 : 0,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
       ),
     );

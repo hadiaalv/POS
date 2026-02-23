@@ -58,19 +58,19 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Date picker
+            // Date picker row
             Row(
               children: [
-                const Text('Date:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Date:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 12),
                 OutlinedButton.icon(
-                  icon: const Icon(Icons.calendar_today),
+                  icon: const Icon(Icons.calendar_today, size: 16),
                   label: Text(DateFormat('dd MMMM yyyy').format(_selectedDate)),
                   onPressed: _pickDate,
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(Icons.today, size: 16),
                   label: const Text('Today'),
                   onPressed: () {
                     _selectedDate = DateTime.now();
@@ -79,13 +79,12 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                 ),
               ],
             ),
-
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
             else if (_report != null)
-              _buildReport(),
+              Expanded(child: _buildReport()),
           ],
         ),
       ),
@@ -99,68 +98,49 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Stats cards row
+        // Stat cards
         Row(
           children: [
-            _statCard(
-              'Total Revenue',
-              'Rs. ${revenue.toStringAsFixed(0)}',
-              Icons.attach_money,
-              const Color(AppConstants.primaryColorValue),
-            ),
-            const SizedBox(width: 16),
-            _statCard(
-              'Total Orders',
-              '${r['total_orders']}',
-              Icons.receipt,
-              Colors.blue,
-            ),
-            const SizedBox(width: 16),
-            _statCard(
-              'Pizzas Sold',
-              '${r['total_pizzas'] ?? 0}',
-              Icons.local_pizza,
-              Colors.orange,
-            ),
-            const SizedBox(width: 16),
-            _statCard(
-              'Shawarmas Sold',
-              '${r['total_shawarmas'] ?? 0}',
-              Icons.lunch_dining,
-              Colors.green,
-            ),
+            _statCard('Revenue',        'Rs. ${revenue.toStringAsFixed(0)}', Icons.attach_money,  const Color(AppConstants.primaryColorValue)),
+            const SizedBox(width: 12),
+            _statCard('Orders',         '${r['total_orders']}',              Icons.receipt,        Colors.blue.shade700),
+            const SizedBox(width: 12),
+            _statCard('Pizzas',         '${r['total_pizzas'] ?? 0}',         Icons.local_pizza,    Colors.orange.shade700),
+            const SizedBox(width: 12),
+            _statCard('Shawarmas',      '${r['total_shawarmas'] ?? 0}',      Icons.lunch_dining,   Colors.green.shade700),
+            const SizedBox(width: 12),
+            _statCard('Burgers',        '${r['total_burgers'] ?? 0}',        Icons.fastfood,       Colors.purple.shade700),
           ],
         ),
 
-        const SizedBox(height: 24),
-
-        // Recent orders
-        const Text(
-          'Orders Today',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
+        const Text('Order List', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
 
         if ((r['recent_orders'] as List).isEmpty)
-          const Text('No orders for this day.', style: TextStyle(fontSize: 15, color: Colors.grey))
+          const Text('No orders for this date.', style: TextStyle(color: Colors.grey))
         else
           Expanded(
             child: ListView.builder(
               itemCount: (r['recent_orders'] as List).length,
               itemBuilder: (context, index) {
                 final order = (r['recent_orders'] as List)[index];
-                final time = DateFormat('hh:mm a').format(DateTime.parse(order['created_at']));
+                final time = DateFormat('hh:mm a')
+                    .format(DateTime.parse(order['created_at']));
                 return Card(
+                  margin: const EdgeInsets.only(bottom: 6),
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: const Color(AppConstants.primaryColorValue),
-                      child: Text('#${order['id']}', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                      child: Text('#${order['id']}',
+                          style: const TextStyle(color: Colors.white, fontSize: 11)),
                     ),
-                    title: Text(order['customer_name'] ?? 'Walk-in'),
-                    subtitle: Text('${order['customer_phone']} • $time'),
+                    title: Text(order['customer_name'] ?? 'Walk-in',
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text('${order['customer_phone'] ?? ''} • $time'),
                     trailing: Text(
                       'Rs. ${(order['total'] as num).toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                 );
@@ -176,20 +156,15 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
       child: Card(
         elevation: 3,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: color, size: 32),
-              const SizedBox(height: 8),
-              Text(value,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  )),
-              const SizedBox(height: 4),
-              Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: 6),
+              Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+              const SizedBox(height: 2),
+              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
         ),

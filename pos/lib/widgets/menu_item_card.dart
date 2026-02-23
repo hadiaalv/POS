@@ -11,6 +11,11 @@ class MenuItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Items with price 0 show "Ask Price"
+    final priceStr = item.price == 0
+        ? 'Ask Price'
+        : 'Rs. ${item.price.toStringAsFixed(0)}';
+
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(10),
@@ -18,40 +23,41 @@ class MenuItemCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
+        splashColor: const Color(AppConstants.primaryColorValue).withOpacity(0.15),
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 item.name,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Rs. ${item.price.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Color(AppConstants.primaryColorValue),
+                  Flexible(
+                    child: Text(
+                      priceStr,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: item.price == 0
+                            ? Colors.grey
+                            : const Color(AppConstants.primaryColorValue),
+                      ),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
                       color: const Color(AppConstants.primaryColorValue),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(5),
                     ),
-                    child: const Icon(Icons.add, color: Colors.white, size: 16),
+                    child: const Icon(Icons.add, color: Colors.white, size: 14),
                   ),
                 ],
               ),

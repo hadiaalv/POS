@@ -5,23 +5,18 @@ import '../models/cart_item.dart';
 import '../models/menu_item.dart';
 
 class CartProvider extends ChangeNotifier {
-  // Customer info
   int? customerId;
   String customerName = '';
   String customerPhone = '';
   String customerAddress = '';
   bool customerFound = false;
 
-  // Cart
   final List<CartItem> _items = [];
   double deliveryCharges = 0;
 
   List<CartItem> get items => List.unmodifiable(_items);
-
   double get subtotal => _items.fold(0, (sum, item) => sum + item.total);
   double get total => subtotal + deliveryCharges;
-
-  // ─── Customer Logic ───────────────────────────────────────────────────────
 
   Future<bool> lookupCustomer(String phone) async {
     final data = await DBHelper.instance.getCustomerByPhone(phone);
@@ -48,8 +43,6 @@ class CartProvider extends ChangeNotifier {
     customerAddress = address;
     notifyListeners();
   }
-
-  // ─── Cart Logic ───────────────────────────────────────────────────────────
 
   void addItem(MenuItem item, String categoryName) {
     final existing = _items.where((i) => i.menuItemId == item.id).toList();
@@ -95,11 +88,11 @@ class CartProvider extends ChangeNotifier {
   Future<int> placeOrder() async {
     if (_items.isEmpty) throw Exception('Cart is empty');
 
-    // Save customer if new
     if (!customerFound && customerPhone.isNotEmpty) {
       customerId = await DBHelper.instance.saveCustomer(
         customerPhone, customerName, customerAddress,
       );
+      customerFound = true;
     }
 
     final orderId = await DBHelper.instance.saveOrder(
