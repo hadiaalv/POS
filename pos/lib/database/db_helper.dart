@@ -28,10 +28,29 @@ class DBHelper {
     return await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 1,
+        version: 2,
         onCreate: _createTables,
+        onUpgrade: _onUpgrade,
       ),
     );
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add notes column to orders if upgrading
+      try {
+        await db.execute('ALTER TABLE orders ADD COLUMN notes TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE customers ADD COLUMN total_orders INTEGER DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE customers ADD COLUMN total_spent REAL DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE customers ADD COLUMN last_order_at TEXT');
+      } catch (_) {}
+    }
   }
 
   Future<void> _createTables(Database db, int version) async {
@@ -40,7 +59,10 @@ class DBHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         phone TEXT UNIQUE NOT NULL,
         name TEXT NOT NULL,
-        address TEXT
+        address TEXT,
+        total_orders INTEGER DEFAULT 0,
+        total_spent REAL DEFAULT 0,
+        last_order_at TEXT
       )
     ''');
 
@@ -72,6 +94,7 @@ class DBHelper {
         subtotal REAL NOT NULL,
         delivery_charges REAL DEFAULT 0,
         total REAL NOT NULL,
+        notes TEXT,
         created_at TEXT NOT NULL
       )
     ''');
@@ -209,11 +232,32 @@ class DBHelper {
     ]);
   }
 
+  // ── Customer Methods ──────────────────────────────────────────────────────
+
   Future<Map<String, dynamic>?> getCustomerByPhone(String phone) async {
     final db = await database;
     final result = await db.query('customers',
         where: 'phone = ?', whereArgs: [phone], limit: 1);
     return result.isEmpty ? null : result.first;
+  }
+
+  Future<List<Map<String, dynamic>>> searchCustomers(String query) async {
+    final db = await database;
+    final q = '%$query%';
+    return await db.rawQuery('''
+      SELECT * FROM customers
+      WHERE phone LIKE ? OR name LIKE ?
+      ORDER BY last_order_at DESC NULLS LAST, name ASC
+      LIMIT 20
+    ''', [q, q]);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllCustomers() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT * FROM customers
+      ORDER BY last_order_at DESC NULLS LAST, name ASC
+    ''');
   }
 
   Future<int> saveCustomer(String phone, String name, String address) async {
@@ -230,6 +274,50 @@ class DBHelper {
     await db.update('customers', {'name': name, 'address': address},
         where: 'phone = ?', whereArgs: [phone]);
   }
+
+  Future<void> _updateCustomerStats(Database db, int customerId, double orderTotal) async {
+    await db.rawUpdate('''
+      UPDATE customers
+      SET total_orders = COALESCE(total_orders, 0) + 1,
+          total_spent  = COALESCE(total_spent, 0) + ?,
+          last_order_at = ?
+      WHERE id = ?
+    ''', [orderTotal, DateTime.now().toIso8601String(), customerId]);
+  }
+
+  // ── Orders ────────────────────────────────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getOrdersByCustomer(int customerId) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT o.*,
+        (SELECT GROUP_CONCAT(oi.item_name || ' x' || oi.quantity, ', ')
+         FROM order_items oi WHERE oi.order_id = o.id) as items_summary
+      FROM orders o
+      WHERE o.customer_id = ?
+      ORDER BY o.created_at DESC
+    ''', [customerId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getOrderItems(int orderId) async {
+    final db = await database;
+    return await db.query('order_items',
+        where: 'order_id = ?', whereArgs: [orderId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getRecentOrders({int limit = 50}) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT o.*,
+        (SELECT GROUP_CONCAT(oi.item_name || ' x' || oi.quantity, ', ')
+         FROM order_items oi WHERE oi.order_id = o.id) as items_summary
+      FROM orders o
+      ORDER BY o.created_at DESC
+      LIMIT ?
+    ''', [limit]);
+  }
+
+  // ── Menu Methods ─────────────────────────────────────────────────────────
 
   Future<List<Map<String, dynamic>>> getCategories() async {
     final db = await database;
@@ -276,6 +364,8 @@ class DBHelper {
         where: 'id = ?', whereArgs: [id]);
   }
 
+  // ── Save Order ────────────────────────────────────────────────────────────
+
   Future<int> saveOrder({
     required int? customerId,
     required String customerName,
@@ -285,6 +375,7 @@ class DBHelper {
     required double deliveryCharges,
     required double total,
     required List<Map<String, dynamic>> items,
+    String? notes,
   }) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
@@ -297,6 +388,7 @@ class DBHelper {
       'subtotal': subtotal,
       'delivery_charges': deliveryCharges,
       'total': total,
+      'notes': notes,
       'created_at': now,
     });
 
@@ -311,8 +403,15 @@ class DBHelper {
       });
     }
 
+    // Update customer stats if we have a customer
+    if (customerId != null) {
+      await _updateCustomerStats(db, customerId, total);
+    }
+
     return orderId;
   }
+
+  // ── Reports ───────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getDailySalesReport(String date) async {
     final db = await database;
@@ -366,6 +465,7 @@ class DBHelper {
     await db.delete('orders');
     await db.delete('menu_items');
     await db.delete('categories');
+    await db.delete('customers');
     await seedDefaultData();
   }
 }
