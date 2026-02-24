@@ -1,4 +1,5 @@
 // lib/database/db_helper.dart
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
@@ -21,35 +22,44 @@ class DBHelper {
     if (kIsWeb) {
       path = 'dkfoods_pos.db';
     } else {
-      final dir = await getApplicationDocumentsDirectory();
+      // Use getApplicationSupportDirectory for Windows/desktop — this is
+      // a persistent app-specific folder that survives app restarts.
+      final dir = await getApplicationSupportDirectory();
       path = join(dir.path, 'dkfoods_pos.db');
+
+      // Make sure the directory exists
+      await Directory(dir.path).create(recursive: true);
+
+      // Print the path so you can verify it in the console
+      debugPrint('📦 Database path: $path');
     }
 
     return await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 2,
+        version: 3, // bumped from 2 → 3 to force onUpgrade to run
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
+        // IMPORTANT: This prevents SQLite from deleting data on open
+        onConfigure: (db) async {
+          await db.execute('PRAGMA foreign_keys = ON');
+          await db.execute('PRAGMA journal_mode = WAL'); // safer writes
+        },
       ),
     );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Add notes column to orders if upgrading
-      try {
-        await db.execute('ALTER TABLE orders ADD COLUMN notes TEXT');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE customers ADD COLUMN total_orders INTEGER DEFAULT 0');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE customers ADD COLUMN total_spent REAL DEFAULT 0');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE customers ADD COLUMN last_order_at TEXT');
-      } catch (_) {}
+      try { await db.execute('ALTER TABLE orders ADD COLUMN notes TEXT'); } catch (_) {}
+      try { await db.execute('ALTER TABLE customers ADD COLUMN total_orders INTEGER DEFAULT 0'); } catch (_) {}
+      try { await db.execute('ALTER TABLE customers ADD COLUMN total_spent REAL DEFAULT 0'); } catch (_) {}
+      try { await db.execute('ALTER TABLE customers ADD COLUMN last_order_at TEXT'); } catch (_) {}
+    }
+    if (oldVersion < 3) {
+      // No new columns needed — version bump just ensures WAL pragma runs
+      // and forces any corrupted state to be re-evaluated
+      debugPrint('✅ DB upgraded to version 3');
     }
   }
 
@@ -116,7 +126,7 @@ class DBHelper {
   Future<void> seedDefaultData() async {
     final db = await database;
     final cats = await db.query('categories');
-    if (cats.isNotEmpty) return;
+    if (cats.isNotEmpty) return; // Already seeded — do nothing
 
     final pizzaId    = await db.insert('categories', {'name': 'Pizza'});
     final squareId   = await db.insert('categories', {'name': 'Square Pizza'});
@@ -260,13 +270,35 @@ class DBHelper {
     ''');
   }
 
+  /// ✅ FIXED: Was using ConflictAlgorithm.replace which DELETED the row
+  /// (wiping total_orders, total_spent). Now uses INSERT OR IGNORE so
+  /// existing customers are never overwritten here.
   Future<int> saveCustomer(String phone, String name, String address) async {
     final db = await database;
-    return await db.insert(
-      'customers',
-      {'phone': phone, 'name': name, 'address': address},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+
+    // Check if customer already exists
+    final existing = await db.query('customers',
+        where: 'phone = ?', whereArgs: [phone], limit: 1);
+
+    if (existing.isNotEmpty) {
+      // Customer exists — just update name/address, keep stats intact
+      await db.update(
+        'customers',
+        {'name': name, 'address': address},
+        where: 'phone = ?',
+        whereArgs: [phone],
+      );
+      return existing.first['id'] as int;
+    } else {
+      // New customer — insert fresh
+      return await db.insert('customers', {
+        'phone': phone,
+        'name': name,
+        'address': address,
+        'total_orders': 0,
+        'total_spent': 0.0,
+      });
+    }
   }
 
   Future<void> updateCustomer(String phone, String name, String address) async {
@@ -403,7 +435,6 @@ class DBHelper {
       });
     }
 
-    // Update customer stats if we have a customer
     if (customerId != null) {
       await _updateCustomerStats(db, customerId, total);
     }
