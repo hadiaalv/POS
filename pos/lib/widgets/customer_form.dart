@@ -23,12 +23,15 @@ class _CustomerFormState extends State<CustomerForm> {
   final _phoneFocus = FocusNode();
   final LayerLink _layerLink = LayerLink();
 
+  // Track last known cart phone to detect external changes (e.g. from Customers screen)
+  String _lastKnownCartPhone = '';
+
   @override
   void initState() {
     super.initState();
     _phoneFocus.addListener(() {
       if (!_phoneFocus.hasFocus) {
-        _hideOverlay();
+        Future.delayed(const Duration(milliseconds: 150), _hideOverlay);
       }
     });
   }
@@ -44,6 +47,10 @@ class _CustomerFormState extends State<CustomerForm> {
   }
 
   Future<void> _onPhoneChanged(String value, CartProvider cart) async {
+    // Update cart phone live so other parts of UI stay in sync
+    cart.customerPhone = value;
+    cart.notifyListeners();
+
     if (value.length < 3) {
       _hideOverlay();
       setState(() => _suggestions = []);
@@ -85,9 +92,7 @@ class _CustomerFormState extends State<CustomerForm> {
                 itemBuilder: (ctx2, i) {
                   final c = _suggestions[i];
                   return InkWell(
-                    onTap: () {
-                      _selectSuggestion(c, cart);
-                    },
+                    onTap: () => _selectSuggestion(c, cart),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       child: Row(
@@ -157,16 +162,19 @@ class _CustomerFormState extends State<CustomerForm> {
 
   void _selectSuggestion(Map<String, dynamic> c, CartProvider cart) {
     _hideOverlay();
-    _phoneCtrl.text = c['phone'];
-    _nameCtrl.text = c['name'];
-    _addressCtrl.text = c['address'] ?? '';
+    _phoneCtrl.text   = c['phone'] as String;
+    _nameCtrl.text    = c['name'] as String;
+    _addressCtrl.text = (c['address'] ?? '') as String;
+    _lastKnownCartPhone = c['phone'] as String;
     cart.setCustomerFromMap(c);
     setState(() => _customerLoaded = true);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('✓ Customer: ${c['name']} | ${c['total_orders'] ?? 0} previous orders'),
-      backgroundColor: Colors.green,
-      duration: const Duration(seconds: 2),
-    ));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('✓ ${c['name']} — ${c['total_orders'] ?? 0} previous orders'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ));
+    }
   }
 
   Future<void> _lookupPhone(CartProvider cart) async {
@@ -176,11 +184,15 @@ class _CustomerFormState extends State<CustomerForm> {
 
     setState(() => _isLookingUp = true);
     final found = await cart.lookupCustomer(phone);
+    _lastKnownCartPhone = phone;
 
     if (found) {
       _nameCtrl.text    = cart.customerName;
       _addressCtrl.text = cart.customerAddress;
-      setState(() => _customerLoaded = true);
+      setState(() {
+        _customerLoaded = true;
+        _isLookingUp = false;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('✓ Customer found: ${cart.customerName}'),
@@ -189,178 +201,204 @@ class _CustomerFormState extends State<CustomerForm> {
         ));
       }
     } else {
-      _nameCtrl.clear();
-      _addressCtrl.clear();
-      setState(() => _customerLoaded = false);
+      setState(() {
+        _customerLoaded = false;
+        _isLookingUp = false;
+      });
     }
-    setState(() => _isLookingUp = false);
   }
 
-  void _applyCustomerInfo(CartProvider cart) {
-    cart.setCustomerDetails(_nameCtrl.text.trim(), _addressCtrl.text.trim());
+  /// Called when user manually edits name or address fields
+  void _onNameChanged(String value, CartProvider cart) {
+    cart.customerName = value;
+    cart.notifyListeners();
+  }
+
+  void _onAddressChanged(String value, CartProvider cart) {
+    cart.customerAddress = value;
+    cart.notifyListeners();
+  }
+
+  void _clearForm(CartProvider cart) {
+    _phoneCtrl.clear();
+    _nameCtrl.clear();
+    _addressCtrl.clear();
+    _lastKnownCartPhone = '';
+    _hideOverlay();
+    setState(() => _customerLoaded = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartProvider>();
+    // Use read for actions, only watch the specific flag we need
+    final cart = context.read<CartProvider>();
 
-    // Clear form when cart is cleared
-    if (cart.customerPhone.isEmpty && _phoneCtrl.text.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _phoneCtrl.clear();
-        _nameCtrl.clear();
-        _addressCtrl.clear();
-        _hideOverlay();
-        setState(() => _customerLoaded = false);
-      });
-    }
+    // Detect when cart was cleared externally (e.g. after Print Bill)
+    // or when customer was loaded from Customers screen
+    return ListenableBuilder(
+      listenable: cart,
+      builder: (context, _) {
+        // Cart was cleared — reset form
+        if (cart.customerPhone.isEmpty && _lastKnownCartPhone.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _clearForm(cart);
+          });
+        }
 
-    // Populate from setCustomerFromMap (customers screen)
-    if (cart.customerFound &&
-        cart.customerPhone.isNotEmpty &&
-        _phoneCtrl.text != cart.customerPhone) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _phoneCtrl.text = cart.customerPhone;
-        _nameCtrl.text = cart.customerName;
-        _addressCtrl.text = cart.customerAddress;
-        setState(() => _customerLoaded = true);
-      });
-    }
+        // Customer loaded from Customers screen — populate form
+        if (cart.customerFound &&
+            cart.customerPhone.isNotEmpty &&
+            cart.customerPhone != _lastKnownCartPhone) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _phoneCtrl.text   = cart.customerPhone;
+              _nameCtrl.text    = cart.customerName;
+              _addressCtrl.text = cart.customerAddress;
+              _lastKnownCartPhone = cart.customerPhone;
+              setState(() => _customerLoaded = true);
+            }
+          });
+        }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            offset: const Offset(0, 2),
-            blurRadius: 4,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.person_outline, size: 16,
-                  color: Color(AppConstants.primaryColorValue)),
-              const SizedBox(width: 6),
-              const Text('Customer Info',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              if (_customerLoaded) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.check_circle, size: 12, color: Colors.green.shade600),
-                      const SizedBox(width: 4),
-                      Text('Returning Customer',
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.green.shade700,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ],
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                offset: const Offset(0, 2),
+                blurRadius: 4,
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Phone with autocomplete
-              CompositedTransformTarget(
-                link: _layerLink,
-                child: SizedBox(
-                  width: 200,
-                  child: TextField(
-                    controller: _phoneCtrl,
-                    focusNode: _phoneFocus,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      labelText: 'Phone Number',
-                      hintText: '03001234567',
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                      suffixIcon: _customerLoaded
-                          ? const Icon(Icons.check_circle, color: Colors.green, size: 18)
-                          : null,
+              // Header row
+              Row(
+                children: [
+                  const Icon(Icons.person_outline, size: 16,
+                      color: Color(AppConstants.primaryColorValue)),
+                  const SizedBox(width: 6),
+                  const Text('Customer Info',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  if (_customerLoaded) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle, size: 12, color: Colors.green.shade600),
+                          const SizedBox(width: 4),
+                          Text('Returning Customer',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
                     ),
-                    onChanged: (v) => _onPhoneChanged(v, cart),
-                    onSubmitted: (_) => _lookupPhone(cart),
-                  ),
-                ),
+                  ],
+                ],
               ),
-              const SizedBox(width: 8),
+              const SizedBox(height: 8),
 
-              // Lookup
-              SizedBox(
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: _isLookingUp ? null : () => _lookupPhone(cart),
-                  icon: _isLookingUp
-                      ? const SizedBox(
-                          width: 14, height: 14,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.search, size: 16),
-                  label: const Text('Search'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(AppConstants.primaryColorValue),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(80, 44),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+              Row(
+                children: [
+                  // ── Phone field with autocomplete ──
+                  CompositedTransformTarget(
+                    link: _layerLink,
+                    child: SizedBox(
+                      width: 200,
+                      child: TextField(
+                        controller: _phoneCtrl,
+                        focusNode: _phoneFocus,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: 'Phone Number',
+                          hintText: '03001234567',
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 10),
+                          suffixIcon: _customerLoaded
+                              ? const Icon(Icons.check_circle,
+                                  color: Colors.green, size: 18)
+                              : null,
+                        ),
+                        onChanged: (v) => _onPhoneChanged(v, cart),
+                        onSubmitted: (_) => _lookupPhone(cart),
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                  const SizedBox(width: 8),
 
-              const SizedBox(width: 8),
-
-              // Name
-              Expanded(
-                flex: 3,
-                child: TextField(
-                  controller: _nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Customer Name',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  // ── Search button ──
+                  SizedBox(
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: _isLookingUp ? null : () => _lookupPhone(cart),
+                      icon: _isLookingUp
+                          ? const SizedBox(
+                              width: 14, height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.search, size: 16),
+                      label: const Text('Search'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(AppConstants.primaryColorValue),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(80, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                      ),
+                    ),
                   ),
-                  onChanged: (_) => _applyCustomerInfo(cart),
-                ),
-              ),
+                  const SizedBox(width: 8),
 
-              const SizedBox(width: 8),
-
-              // Address
-              Expanded(
-                flex: 4,
-                child: TextField(
-                  controller: _addressCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Address / Area',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  // ── Customer Name ──
+                  Expanded(
+                    flex: 3,
+                    child: TextField(
+                      controller: _nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Customer Name',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                      onChanged: (v) => _onNameChanged(v, cart),
+                    ),
                   ),
-                  onChanged: (_) => _applyCustomerInfo(cart),
-                ),
+                  const SizedBox(width: 8),
+
+                  // ── Address ──
+                  Expanded(
+                    flex: 4,
+                    child: TextField(
+                      controller: _addressCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Address / Area',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                      onChanged: (v) => _onAddressChanged(v, cart),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
