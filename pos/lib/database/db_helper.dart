@@ -18,8 +18,6 @@ class DBHelper {
   Future<String> _getDbPath() async {
     if (kIsWeb) return 'dkfoods_pos.db';
 
-    // Get the executable's directory — most reliable on Windows desktop
-    // The DB file sits right next to your .exe, easy to find and backup
     final exeDir = File(Platform.resolvedExecutable).parent.path;
     final dbDir = p.join(exeDir, 'data');
     await Directory(dbDir).create(recursive: true);
@@ -249,15 +247,26 @@ class DBHelper {
     return result.isEmpty ? null : result.first;
   }
 
+  /// Search customers by phone OR name.
+  ///
+  /// Results are ranked so that records whose name/phone STARTS WITH the query
+  /// come before those that merely CONTAIN it, then sorted by most recent order.
   Future<List<Map<String, dynamic>>> searchCustomers(String query) async {
     final db = await database;
-    final q = '%$query%';
+    final q       = '%${query.trim()}%';   // contains match
+    final qStart  = '${query.trim()}%';    // starts-with match (for ranking)
+
     return await db.rawQuery('''
-      SELECT * FROM customers
-      WHERE phone LIKE ? OR name LIKE ?
-      ORDER BY last_order_at DESC, name ASC
+      SELECT *,
+        CASE
+          WHEN LOWER(phone) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) THEN 0
+          ELSE 1
+        END AS rank_order
+      FROM customers
+      WHERE phone LIKE ? OR LOWER(name) LIKE LOWER(?)
+      ORDER BY rank_order ASC, last_order_at DESC, name ASC
       LIMIT 20
-    ''', [q, q]);
+    ''', [qStart, qStart, q, q]);
   }
 
   Future<List<Map<String, dynamic>>> getAllCustomers() async {
@@ -268,7 +277,6 @@ class DBHelper {
     ''');
   }
 
-  /// Safely saves a new customer, or updates name/address without touching stats
   Future<int> saveCustomer(String phone, String name, String address) async {
     final db = await database;
     final existing = await db.query('customers',
