@@ -32,15 +32,14 @@ class BillPrinter {
               pw.SizedBox(height: 4),
               _divider(),
 
-              // Customer info - left aligned
               pw.Align(
                 alignment: pw.Alignment.centerLeft,
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Date: $dateStr',                  style: const pw.TextStyle(fontSize: 8)),
-                    pw.Text('Name: ${cart.customerName}',      style: const pw.TextStyle(fontSize: 8)),
-                    pw.Text('Phone: ${cart.customerPhone}',    style: const pw.TextStyle(fontSize: 8)),
+                    pw.Text('Date: $dateStr',                     style: const pw.TextStyle(fontSize: 8)),
+                    pw.Text('Name: ${cart.customerName}',         style: const pw.TextStyle(fontSize: 8)),
+                    pw.Text('Phone: ${cart.customerPhone}',       style: const pw.TextStyle(fontSize: 8)),
                     if (cart.customerAddress.trim().isNotEmpty)
                       pw.Text('Address: ${cart.customerAddress}', style: const pw.TextStyle(fontSize: 8)),
                   ],
@@ -48,7 +47,6 @@ class BillPrinter {
               ),
               _divider(),
 
-              // Items header
               pw.Row(
                 children: [
                   pw.Expanded(flex: 5, child: pw.Text('Item',  style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
@@ -63,17 +61,17 @@ class BillPrinter {
                 padding: const pw.EdgeInsets.symmetric(vertical: 1),
                 child: pw.Row(
                   children: [
-                    pw.Expanded(flex: 5, child: pw.Text(item.name,                          style: const pw.TextStyle(fontSize: 8))),
-                    pw.Expanded(flex: 1, child: pw.Text('${item.quantity}',                 style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.center)),
-                    pw.Expanded(flex: 2, child: pw.Text(item.price.toStringAsFixed(0),      style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.right)),
-                    pw.Expanded(flex: 2, child: pw.Text(item.total.toStringAsFixed(0),      style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.right)),
+                    pw.Expanded(flex: 5, child: pw.Text(item.name,                     style: const pw.TextStyle(fontSize: 8))),
+                    pw.Expanded(flex: 1, child: pw.Text('${item.quantity}',            style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.center)),
+                    pw.Expanded(flex: 2, child: pw.Text(item.price.toStringAsFixed(0), style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.right)),
+                    pw.Expanded(flex: 2, child: pw.Text(item.total.toStringAsFixed(0), style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.right)),
                   ],
                 ),
               )),
 
               _divider(),
-              _row('Subtotal',  'Rs. ${cart.subtotal.toStringAsFixed(0)}'),
-              _row('Delivery',  'Rs. ${cart.deliveryCharges.toStringAsFixed(0)}'),
+              _row('Subtotal', 'Rs. ${cart.subtotal.toStringAsFixed(0)}'),
+              _row('Delivery', 'Rs. ${cart.deliveryCharges.toStringAsFixed(0)}'),
               pw.SizedBox(height: 2),
               _row('TOTAL', 'Rs. ${cart.total.toStringAsFixed(0)}', bold: true, fontSize: 11),
               _divider(),
@@ -90,6 +88,7 @@ class BillPrinter {
       ),
     );
 
+    // No usePrinterSettings parameter = uses the modern Chrome-style preview
     await Printing.layoutPdf(
       onLayout: (_) async => pdf.save(),
       name: 'DKFoods_Bill_${DateFormat('yyyyMMdd_HHmmss').format(now)}',

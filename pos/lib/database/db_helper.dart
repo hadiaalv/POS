@@ -2,8 +2,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 class DBHelper {
   static final DBHelper instance = DBHelper._internal();
@@ -16,34 +15,33 @@ class DBHelper {
     return _db!;
   }
 
+  Future<String> _getDbPath() async {
+    if (kIsWeb) return 'dkfoods_pos.db';
+
+    // Get the executable's directory — most reliable on Windows desktop
+    // The DB file sits right next to your .exe, easy to find and backup
+    final exeDir = File(Platform.resolvedExecutable).parent.path;
+    final dbDir = p.join(exeDir, 'data');
+    await Directory(dbDir).create(recursive: true);
+    final path = p.join(dbDir, 'dkfoods_pos.db');
+
+    debugPrint('✅ DB path: $path');
+    return path;
+  }
+
   Future<Database> _initDB() async {
-    String path;
-
-    if (kIsWeb) {
-      path = 'dkfoods_pos.db';
-    } else {
-      // Use getApplicationSupportDirectory for Windows/desktop — this is
-      // a persistent app-specific folder that survives app restarts.
-      final dir = await getApplicationSupportDirectory();
-      path = join(dir.path, 'dkfoods_pos.db');
-
-      // Make sure the directory exists
-      await Directory(dir.path).create(recursive: true);
-
-      // Print the path so you can verify it in the console
-      debugPrint('📦 Database path: $path');
-    }
+    final path = await _getDbPath();
 
     return await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 3, // bumped from 2 → 3 to force onUpgrade to run
+        version: 3,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
-        // IMPORTANT: This prevents SQLite from deleting data on open
-        onConfigure: (db) async {
-          await db.execute('PRAGMA foreign_keys = ON');
-          await db.execute('PRAGMA journal_mode = WAL'); // safer writes
+        onOpen: (db) async {
+          await db.execute('PRAGMA journal_mode=WAL');
+          await db.execute('PRAGMA synchronous=NORMAL');
+          debugPrint('✅ DB opened successfully at: $path');
         },
       ),
     );
@@ -56,16 +54,12 @@ class DBHelper {
       try { await db.execute('ALTER TABLE customers ADD COLUMN total_spent REAL DEFAULT 0'); } catch (_) {}
       try { await db.execute('ALTER TABLE customers ADD COLUMN last_order_at TEXT'); } catch (_) {}
     }
-    if (oldVersion < 3) {
-      // No new columns needed — version bump just ensures WAL pragma runs
-      // and forces any corrupted state to be re-evaluated
-      debugPrint('✅ DB upgraded to version 3');
-    }
+    debugPrint('✅ DB upgraded to version $newVersion');
   }
 
   Future<void> _createTables(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE customers (
+      CREATE TABLE IF NOT EXISTS customers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         phone TEXT UNIQUE NOT NULL,
         name TEXT NOT NULL,
@@ -77,14 +71,14 @@ class DBHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE categories (
+      CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL
       )
     ''');
 
     await db.execute('''
-      CREATE TABLE menu_items (
+      CREATE TABLE IF NOT EXISTS menu_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         category_id INTEGER NOT NULL,
         name TEXT NOT NULL,
@@ -95,7 +89,7 @@ class DBHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE orders (
+      CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         customer_id INTEGER,
         customer_name TEXT,
@@ -110,7 +104,7 @@ class DBHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE order_items (
+      CREATE TABLE IF NOT EXISTS order_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id INTEGER NOT NULL,
         menu_item_id INTEGER NOT NULL,
@@ -121,12 +115,14 @@ class DBHelper {
         FOREIGN KEY (order_id) REFERENCES orders(id)
       )
     ''');
+
+    debugPrint('✅ All tables created');
   }
 
   Future<void> seedDefaultData() async {
     final db = await database;
     final cats = await db.query('categories');
-    if (cats.isNotEmpty) return; // Already seeded — do nothing
+    if (cats.isNotEmpty) return;
 
     final pizzaId    = await db.insert('categories', {'name': 'Pizza'});
     final squareId   = await db.insert('categories', {'name': 'Square Pizza'});
@@ -240,6 +236,8 @@ class DBHelper {
       {'name': 'Steam Pece', 'price': 0.0},
       {'name': 'DK Bake',    'price': 0.0},
     ]);
+
+    debugPrint('✅ Default menu data seeded');
   }
 
   // ── Customer Methods ──────────────────────────────────────────────────────
@@ -257,7 +255,7 @@ class DBHelper {
     return await db.rawQuery('''
       SELECT * FROM customers
       WHERE phone LIKE ? OR name LIKE ?
-      ORDER BY last_order_at DESC NULLS LAST, name ASC
+      ORDER BY last_order_at DESC, name ASC
       LIMIT 20
     ''', [q, q]);
   }
@@ -266,22 +264,17 @@ class DBHelper {
     final db = await database;
     return await db.rawQuery('''
       SELECT * FROM customers
-      ORDER BY last_order_at DESC NULLS LAST, name ASC
+      ORDER BY last_order_at DESC, name ASC
     ''');
   }
 
-  /// ✅ FIXED: Was using ConflictAlgorithm.replace which DELETED the row
-  /// (wiping total_orders, total_spent). Now uses INSERT OR IGNORE so
-  /// existing customers are never overwritten here.
+  /// Safely saves a new customer, or updates name/address without touching stats
   Future<int> saveCustomer(String phone, String name, String address) async {
     final db = await database;
-
-    // Check if customer already exists
     final existing = await db.query('customers',
         where: 'phone = ?', whereArgs: [phone], limit: 1);
 
     if (existing.isNotEmpty) {
-      // Customer exists — just update name/address, keep stats intact
       await db.update(
         'customers',
         {'name': name, 'address': address},
@@ -290,7 +283,6 @@ class DBHelper {
       );
       return existing.first['id'] as int;
     } else {
-      // New customer — insert fresh
       return await db.insert('customers', {
         'phone': phone,
         'name': name,
@@ -307,7 +299,8 @@ class DBHelper {
         where: 'phone = ?', whereArgs: [phone]);
   }
 
-  Future<void> _updateCustomerStats(Database db, int customerId, double orderTotal) async {
+  Future<void> _updateCustomerStats(
+      Database db, int customerId, double orderTotal) async {
     await db.rawUpdate('''
       UPDATE customers
       SET total_orders = COALESCE(total_orders, 0) + 1,
@@ -356,7 +349,8 @@ class DBHelper {
     return await db.query('categories', orderBy: 'id ASC');
   }
 
-  Future<List<Map<String, dynamic>>> getMenuItemsByCategory(int categoryId) async {
+  Future<List<Map<String, dynamic>>> getMenuItemsByCategory(
+      int categoryId) async {
     final db = await database;
     return await db.query('menu_items',
         where: 'category_id = ? AND is_available = 1',
