@@ -13,6 +13,7 @@ import 'sales_report_screen.dart';
 import 'menu_management_screen.dart';
 import 'customers_screen.dart';
 import 'order_history_screen.dart';
+import 'riders_screen.dart';
 
 class POSScreen extends StatelessWidget {
   const POSScreen({super.key});
@@ -50,6 +51,9 @@ class POSScreen extends StatelessWidget {
           _NavBtn(icon: Icons.people_alt_outlined, label: 'Customers',
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const CustomersScreen()))),
+          _NavBtn(icon: Icons.delivery_dining, label: 'Riders',
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const RidersScreen()))),
           _NavBtn(icon: Icons.bar_chart_rounded, label: 'Reports',
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const SalesReportScreen()))),
@@ -222,11 +226,6 @@ class _CartList extends StatelessWidget {
   }
 }
 
-// ─── Order Summary ─────────────────────────────────────────────────────────────
-// Key fix: delivery & notes TextFields are plain StatefulWidget fields.
-// Only the subtotal/total TEXT is wrapped in Selector so it updates reactively
-// WITHOUT rebuilding (and thus resetting) the TextEditingControllers.
-
 class _OrderSummary extends StatefulWidget {
   const _OrderSummary();
   @override
@@ -287,7 +286,6 @@ class _OrderSummaryState extends State<_OrderSummary> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
 
-          // Subtotal row — only this rebuilds when items change
           Selector<CartProvider, ({int qty, double subtotal, bool hasItems})>(
             selector: (_, c) => (
               qty: c.items.fold(0, (s, i) => s + i.quantity),
@@ -314,7 +312,6 @@ class _OrderSummaryState extends State<_OrderSummary> {
 
           const SizedBox(height: 8),
 
-          // ── Delivery charges ── (plain TextField, NOT wrapped in Consumer/Selector)
           Row(children: [
             Text('Delivery:', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
             const SizedBox(width: 8),
@@ -338,7 +335,6 @@ class _OrderSummaryState extends State<_OrderSummary> {
 
           const SizedBox(height: 8),
 
-          // ── Order notes ── (plain TextField, NOT wrapped in Consumer/Selector)
           TextField(
             controller: _notesCtrl,
             decoration: InputDecoration(
@@ -353,7 +349,6 @@ class _OrderSummaryState extends State<_OrderSummary> {
 
           const Divider(height: 14),
 
-          // TOTAL row — only this rebuilds when total changes
           Selector<CartProvider, double>(
             selector: (_, c) => c.total,
             builder: (_, total, __) => Row(

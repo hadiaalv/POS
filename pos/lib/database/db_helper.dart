@@ -33,7 +33,7 @@ class DBHelper {
     return await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 3,
+        version: 4, // bumped from 3 → 4
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
         onOpen: (db) async {
@@ -51,6 +51,9 @@ class DBHelper {
       try { await db.execute('ALTER TABLE customers ADD COLUMN total_orders INTEGER DEFAULT 0'); } catch (_) {}
       try { await db.execute('ALTER TABLE customers ADD COLUMN total_spent REAL DEFAULT 0'); } catch (_) {}
       try { await db.execute('ALTER TABLE customers ADD COLUMN last_order_at TEXT'); } catch (_) {}
+    }
+    if (oldVersion < 4) {
+      await _createRiderTables(db);
     }
     debugPrint('✅ DB upgraded to version $newVersion');
   }
@@ -114,7 +117,34 @@ class DBHelper {
       )
     ''');
 
+    await _createRiderTables(db);
+
     debugPrint('✅ All tables created');
+  }
+
+  Future<void> _createRiderTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS riders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT DEFAULT '',
+        is_active INTEGER DEFAULT 1
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS rider_trips (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rider_id INTEGER NOT NULL,
+        rider_name TEXT NOT NULL,
+        order_ids TEXT NOT NULL,
+        departed_at TEXT NOT NULL,
+        returned_at TEXT,
+        notes TEXT,
+        FOREIGN KEY (rider_id) REFERENCES riders(id)
+      )
+    ''');
+    debugPrint('✅ Rider tables created');
   }
 
   Future<void> seedDefaultData() async {
@@ -247,14 +277,10 @@ class DBHelper {
     return result.isEmpty ? null : result.first;
   }
 
-  /// Search customers by phone OR name.
-  ///
-  /// Results are ranked so that records whose name/phone STARTS WITH the query
-  /// come before those that merely CONTAIN it, then sorted by most recent order.
   Future<List<Map<String, dynamic>>> searchCustomers(String query) async {
     final db = await database;
-    final q       = '%${query.trim()}%';   // contains match
-    final qStart  = '${query.trim()}%';    // starts-with match (for ranking)
+    final q      = '%${query.trim()}%';
+    final qStart = '${query.trim()}%';
 
     return await db.rawQuery('''
       SELECT *,
@@ -500,5 +526,100 @@ class DBHelper {
     await db.delete('categories');
     await db.delete('customers');
     await seedDefaultData();
+  }
+
+  // ── Rider Methods ─────────────────────────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getAllRiders() async {
+    final db = await database;
+    return await db.query('riders', orderBy: 'name ASC');
+  }
+
+  Future<int> addRider(String name, String phone) async {
+    final db = await database;
+    return await db.insert('riders', {'name': name, 'phone': phone, 'is_active': 1});
+  }
+
+  Future<void> updateRider(int id, String name, String phone) async {
+    final db = await database;
+    await db.update('riders', {'name': name, 'phone': phone},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> toggleRiderActive(int id, bool active) async {
+    final db = await database;
+    await db.update('riders', {'is_active': active ? 1 : 0},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> deleteRider(int id) async {
+    final db = await database;
+    await db.delete('riders', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> startRiderTrip({
+    required int riderId,
+    required String riderName,
+    required String orderIds,
+    String? notes,
+  }) async {
+    final db = await database;
+    return await db.insert('rider_trips', {
+      'rider_id': riderId,
+      'rider_name': riderName,
+      'order_ids': orderIds,
+      'departed_at': DateTime.now().toIso8601String(),
+      'notes': notes,
+    });
+  }
+
+  Future<void> markRiderReturned(int tripId) async {
+    final db = await database;
+    await db.update(
+      'rider_trips',
+      {'returned_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [tripId],
+    );
+  }
+
+  Future<void> updateTripNotes(int tripId, String notes) async {
+    final db = await database;
+    await db.update('rider_trips', {'notes': notes},
+        where: 'id = ?', whereArgs: [tripId]);
+  }
+
+  Future<void> deleteTrip(int tripId) async {
+    final db = await database;
+    await db.delete('rider_trips', where: 'id = ?', whereArgs: [tripId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getActiveTrips() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT rt.*
+      FROM rider_trips rt
+      WHERE rt.returned_at IS NULL
+      ORDER BY rt.departed_at DESC
+    ''');
+  }
+
+  Future<List<Map<String, dynamic>>> getTripHistory({int limit = 100}) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT rt.*
+      FROM rider_trips rt
+      ORDER BY rt.departed_at DESC
+      LIMIT ?
+    ''', [limit]);
+  }
+
+  Future<List<Map<String, dynamic>>> getTripsByRider(int riderId) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT * FROM rider_trips
+      WHERE rider_id = ?
+      ORDER BY departed_at DESC
+    ''', [riderId]);
   }
 }
