@@ -42,15 +42,15 @@ class _RidersScreenState extends State<RidersScreen>
   }
 
   Future<void> _load() async {
-    final riders      = await DBHelper.instance.getAllRiders();
-    final activeRaw   = await DBHelper.instance.getActiveTrips();
-    final historyRaw  = await DBHelper.instance.getTripHistory(limit: 150);
+    final riders = await DBHelper.instance.getAllRiders();
+    final activeRaw = await DBHelper.instance.getActiveTrips();
+    final historyRaw = await DBHelper.instance.getTripHistory(limit: 150);
 
     if (!mounted) return;
     setState(() {
-      _riders      = riders;
+      _riders = riders;
       _activeTrips = activeRaw.map((m) => RiderTrip.fromMap(m)).toList();
-      _history     = historyRaw.map((m) => RiderTrip.fromMap(m)).toList();
+      _history = historyRaw.map((m) => RiderTrip.fromMap(m)).toList();
     });
   }
 
@@ -80,7 +80,8 @@ class _RidersScreenState extends State<RidersScreen>
                   color: const Color(AppConstants.primaryColorValue),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.delivery_dining, color: Colors.white, size: 20),
+                child: const Icon(Icons.delivery_dining,
+                    color: Colors.white, size: 20),
               ),
               const SizedBox(width: 10),
               const Text('Dispatch Rider'),
@@ -106,12 +107,16 @@ class _RidersScreenState extends State<RidersScreen>
                             child: Row(
                               children: [
                                 Text(r['name'] as String,
-                                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                                if ((r['phone'] ?? '').toString().isNotEmpty) ...[
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600)),
+                                if ((r['phone'] ?? '')
+                                    .toString()
+                                    .isNotEmpty) ...[
                                   const SizedBox(width: 8),
                                   Text('· ${r['phone']}',
                                       style: TextStyle(
-                                          fontSize: 12, color: Colors.grey.shade500)),
+                                          fontSize: 12,
+                                          color: Colors.grey.shade500)),
                                 ],
                               ],
                             ),
@@ -119,7 +124,7 @@ class _RidersScreenState extends State<RidersScreen>
                       .toList(),
                   onChanged: (val) {
                     setS(() {
-                      selectedRiderId   = val;
+                      selectedRiderId = val;
                       selectedRiderName = activeRiders
                           .firstWhere((r) => r['id'] == val)['name'] as String;
                     });
@@ -137,7 +142,8 @@ class _RidersScreenState extends State<RidersScreen>
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.receipt_long),
                     helperText: 'Separate multiple orders with commas',
-                    helperStyle: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                    helperStyle:
+                        TextStyle(color: Colors.grey.shade500, fontSize: 11),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -164,12 +170,14 @@ class _RidersScreenState extends State<RidersScreen>
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.access_time, size: 14, color: Colors.blue.shade700),
+                      Icon(Icons.access_time,
+                          size: 14, color: Colors.blue.shade700),
                       const SizedBox(width: 6),
                       Text(
                         'Departure time will be recorded as: '
                         '${DateFormat('hh:mm a').format(DateTime.now())}',
-                        style: TextStyle(fontSize: 11, color: Colors.blue.shade700),
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.blue.shade700),
                       ),
                     ],
                   ),
@@ -200,12 +208,12 @@ class _RidersScreenState extends State<RidersScreen>
                   return;
                 }
                 await DBHelper.instance.startRiderTrip(
-                  riderId:    selectedRiderId!,
-                  riderName:  selectedRiderName!,
-                  orderIds:   rawIds,
-                  notes:      notesCtrl.text.trim().isEmpty
-                              ? null
-                              : notesCtrl.text.trim(),
+                  riderId: selectedRiderId!,
+                  riderName: selectedRiderName!,
+                  orderIds: rawIds,
+                  notes: notesCtrl.text.trim().isEmpty
+                      ? null
+                      : notesCtrl.text.trim(),
                 );
                 Navigator.pop(ctx);
                 await _load();
@@ -213,9 +221,11 @@ class _RidersScreenState extends State<RidersScreen>
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Row(children: [
-                      const Icon(Icons.check_circle, color: Colors.white, size: 16),
+                      const Icon(Icons.check_circle,
+                          color: Colors.white, size: 16),
                       const SizedBox(width: 8),
-                      Text('$selectedRiderName dispatched with orders: $rawIds'),
+                      Text(
+                          '$selectedRiderName dispatched with orders: $rawIds'),
                     ]),
                     backgroundColor: Colors.green.shade600,
                     behavior: SnackBarBehavior.floating,
@@ -241,11 +251,14 @@ class _RidersScreenState extends State<RidersScreen>
           'Trip duration: ${trip.durationStr}',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Confirm Return', style: TextStyle(color: Colors.white)),
+            child: const Text('Confirm Return',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -259,9 +272,9 @@ class _RidersScreenState extends State<RidersScreen>
   // ─── Add / Edit rider dialog ──────────────────────────────────────────────
 
   Future<void> _showRiderDialog({Map<String, dynamic>? existing}) async {
-    final nameCtrl  = TextEditingController(text: existing?['name'] ?? '');
+    final nameCtrl = TextEditingController(text: existing?['name'] ?? '');
     final phoneCtrl = TextEditingController(text: existing?['phone'] ?? '');
-    final isEdit    = existing != null;
+    final isEdit = existing != null;
 
     await showDialog(
       context: context,
@@ -296,7 +309,8 @@ class _RidersScreenState extends State<RidersScreen>
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(AppConstants.primaryColorValue),
@@ -309,8 +323,8 @@ class _RidersScreenState extends State<RidersScreen>
                 return;
               }
               if (isEdit) {
-                await DBHelper.instance.updateRider(
-                    existing!['id'], name, phoneCtrl.text.trim());
+                await DBHelper.instance
+                    .updateRider(existing['id'], name, phoneCtrl.text.trim());
               } else {
                 await DBHelper.instance.addRider(name, phoneCtrl.text.trim());
               }
@@ -333,7 +347,9 @@ class _RidersScreenState extends State<RidersScreen>
         title: const Text('Delete Rider?'),
         content: Text('Remove "${rider['name']}" from the system?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -387,7 +403,8 @@ class _RidersScreenState extends State<RidersScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(AppConstants.primaryColorValue),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               ),
               onPressed: _showDispatchDialog,
             ),
@@ -408,13 +425,15 @@ class _RidersScreenState extends State<RidersScreen>
                   if (activeCount > 0) ...[
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 1),
                       decoration: BoxDecoration(
                         color: Colors.orange,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text('$activeCount',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          style: const TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ],
@@ -481,7 +500,8 @@ class _RidersTab extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
-              Text('${riders.length} rider${riders.length == 1 ? '' : 's'} registered',
+              Text(
+                  '${riders.length} rider${riders.length == 1 ? '' : 's'} registered',
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
               const Spacer(),
               ElevatedButton.icon(
@@ -509,11 +529,13 @@ class _RidersTab extends StatelessWidget {
                   itemCount: riders.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (ctx, i) {
-                    final r       = riders[i];
+                    final r = riders[i];
                     final isActive = r['is_active'] == 1;
-                    final name    = r['name'] as String;
-                    final phone   = (r['phone'] ?? '') as String;
-                    final initials = name.trim().split(' ')
+                    final name = r['name'] as String;
+                    final phone = (r['phone'] ?? '') as String;
+                    final initials = name
+                        .trim()
+                        .split(' ')
                         .where((w) => w.isNotEmpty)
                         .map((w) => w[0].toUpperCase())
                         .take(2)
@@ -526,7 +548,8 @@ class _RidersTab extends StatelessWidget {
                         side: BorderSide(color: Colors.grey.shade200),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
                         child: Row(
                           children: [
                             CircleAvatar(
@@ -547,26 +570,35 @@ class _RidersTab extends StatelessWidget {
                                 children: [
                                   Text(name,
                                       style: const TextStyle(
-                                          fontSize: 15, fontWeight: FontWeight.bold)),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold)),
                                   if (phone.isNotEmpty)
                                     Row(children: [
-                                      Icon(Icons.phone, size: 12, color: Colors.grey.shade500),
+                                      Icon(Icons.phone,
+                                          size: 12,
+                                          color: Colors.grey.shade500),
                                       const SizedBox(width: 4),
                                       Text(phone,
                                           style: TextStyle(
-                                              fontSize: 12, color: Colors.grey.shade500)),
+                                              fontSize: 12,
+                                              color: Colors.grey.shade500)),
                                     ]),
                                 ],
                               ),
                             ),
                             // Active badge
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: isActive ? Colors.green.shade50 : Colors.grey.shade100,
+                                color: isActive
+                                    ? Colors.green.shade50
+                                    : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: isActive ? Colors.green.shade200 : Colors.grey.shade300),
+                                    color: isActive
+                                        ? Colors.green.shade200
+                                        : Colors.grey.shade300),
                               ),
                               child: Text(
                                 isActive ? 'Active' : 'Inactive',
@@ -587,13 +619,15 @@ class _RidersTab extends StatelessWidget {
                             ),
                             // Edit
                             IconButton(
-                              icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blue),
+                              icon: const Icon(Icons.edit_outlined,
+                                  size: 18, color: Colors.blue),
                               tooltip: 'Edit',
                               onPressed: () => onEdit(r),
                             ),
                             // Delete
                             IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                              icon: const Icon(Icons.delete_outline,
+                                  size: 18, color: Colors.red),
                               tooltip: 'Delete',
                               onPressed: () => onDelete(r),
                             ),
@@ -630,7 +664,8 @@ class _ActiveTripsTab extends StatelessWidget {
       return _EmptyState(
         icon: Icons.check_circle_outline,
         title: 'No active deliveries',
-        subtitle: 'All riders are back. Use "Dispatch Rider" to send someone out.',
+        subtitle:
+            'All riders are back. Use "Dispatch Rider" to send someone out.',
       );
     }
 
@@ -673,11 +708,13 @@ class _ActiveTripCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.orange.shade600,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.delivery_dining, color: Colors.white, size: 20),
+                const Icon(Icons.delivery_dining,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 8),
                 Text(trip.riderName,
                     style: const TextStyle(
@@ -686,14 +723,16 @@ class _ActiveTripCard extends StatelessWidget {
                         fontWeight: FontWeight.bold)),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.25),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.timer_outlined, color: Colors.white, size: 13),
+                      const Icon(Icons.timer_outlined,
+                          color: Colors.white, size: 13),
                       const SizedBox(width: 4),
                       Text('Out for ${trip.durationStr}',
                           style: const TextStyle(
@@ -745,9 +784,12 @@ class _ActiveTripCard extends StatelessWidget {
                 // Info row
                 Row(
                   children: [
-                    _infoChip(Icons.access_time, 'Departed', departStr, Colors.orange.shade700),
+                    _infoChip(Icons.access_time, 'Departed', departStr,
+                        Colors.orange.shade700),
                     const SizedBox(width: 10),
-                    _infoChip(Icons.receipt_long, 'Orders',
+                    _infoChip(
+                        Icons.receipt_long,
+                        'Orders',
                         '$orderCount order${orderCount == 1 ? '' : 's'}',
                         Colors.blue.shade700),
                   ],
@@ -767,7 +809,8 @@ class _ActiveTripCard extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.notes, size: 14, color: Colors.grey.shade500),
+                        Icon(Icons.notes,
+                            size: 14, color: Colors.grey.shade500),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(trip.notes!,
@@ -834,7 +877,8 @@ class _ActiveTripCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                    style:
+                        TextStyle(fontSize: 10, color: Colors.grey.shade500)),
                 Text(value,
                     style: TextStyle(
                         fontSize: 13,
@@ -880,12 +924,11 @@ class _HistoryTab extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       itemCount: dates.length,
       itemBuilder: (ctx, di) {
-        final date       = dates[di];
-        final dayTrips   = grouped[date]!;
-        final dateLabel  = DateFormat('EEEE, dd MMM yyyy')
-            .format(DateTime.parse(date));
-        final isToday    = date ==
-            DateFormat('yyyy-MM-dd').format(DateTime.now());
+        final date = dates[di];
+        final dayTrips = grouped[date]!;
+        final dateLabel =
+            DateFormat('EEEE, dd MMM yyyy').format(DateTime.parse(date));
+        final isToday = date == DateFormat('yyyy-MM-dd').format(DateTime.now());
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -895,8 +938,8 @@ class _HistoryTab extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       color: isToday
                           ? const Color(AppConstants.primaryColorValue)
@@ -912,9 +955,10 @@ class _HistoryTab extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text('${dayTrips.length} trip${dayTrips.length == 1 ? '' : 's'}',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade500)),
+                  Text(
+                      '${dayTrips.length} trip${dayTrips.length == 1 ? '' : 's'}',
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                 ],
               ),
             ),
@@ -975,8 +1019,7 @@ class _HistoryCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     trip.orderIds.map((id) => '#$id').join(', '),
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -989,7 +1032,8 @@ class _HistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text('Departed',
-                      style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+                      style:
+                          TextStyle(fontSize: 10, color: Colors.grey.shade400)),
                   Text(departStr,
                       style: const TextStyle(
                           fontSize: 13, fontWeight: FontWeight.w600)),
@@ -1003,12 +1047,14 @@ class _HistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text('Returned',
-                      style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+                      style:
+                          TextStyle(fontSize: 10, color: Colors.grey.shade400)),
                   Text(returnStr,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: isCompleted ? Colors.green.shade700 : Colors.orange,
+                        color:
+                            isCompleted ? Colors.green.shade700 : Colors.orange,
                       )),
                 ],
               ),
@@ -1020,7 +1066,8 @@ class _HistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text('Duration',
-                      style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+                      style:
+                          TextStyle(fontSize: 10, color: Colors.grey.shade400)),
                   Text(trip.durationStr,
                       style: TextStyle(
                         fontSize: 13,
@@ -1035,7 +1082,8 @@ class _HistoryCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: isCompleted ? Colors.green.shade50 : Colors.orange.shade50,
+                color:
+                    isCompleted ? Colors.green.shade50 : Colors.orange.shade50,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                     color: isCompleted
