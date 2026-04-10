@@ -69,7 +69,7 @@ class BillPrinter {
                   style: pw.TextStyle(
                       fontSize: 16, fontWeight: pw.FontWeight.bold),
                 ),
-                pw.SizedBox(height: 2),
+                pw.SizedBox(height: 1),
 
                 // Address
                 pw.Text(
@@ -77,12 +77,12 @@ class BillPrinter {
                   style: const pw.TextStyle(fontSize: 8),
                   textAlign: pw.TextAlign.center,
                 ),
-                pw.SizedBox(height: 3),
+                pw.SizedBox(height: 1.5),
 
                 // Phone numbers — 2 per row
                 ...phoneRows,
 
-                pw.SizedBox(height: 4),
+                pw.SizedBox(height: 2),
                 _divider(),
 
                 // Customer info
@@ -156,18 +156,18 @@ class BillPrinter {
                 _row('Subtotal', 'Rs. ${cart.subtotal.toStringAsFixed(0)}'),
                 _row('Delivery',
                     'Rs. ${cart.deliveryCharges.toStringAsFixed(0)}'),
-                pw.SizedBox(height: 2),
+                pw.SizedBox(height: 1),
                 _row('TOTAL', 'Rs. ${cart.total.toStringAsFixed(0)}',
                     bold: true, fontSize: 11),
                 _divider(),
 
-                pw.SizedBox(height: 4),
+                pw.SizedBox(height: 2),
                 pw.Text(
                   AppConstants.thankYouMsg,
                   style:
                       pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
                 ),
-                pw.SizedBox(height: 8),
+                pw.SizedBox(height: 4),
               ],
             );
           },
@@ -182,9 +182,9 @@ class BillPrinter {
   }
 
   static pw.Widget _divider() => pw.Column(children: [
-        pw.SizedBox(height: 2),
+        pw.SizedBox(height: 1),
         pw.Divider(thickness: 0.5),
-        pw.SizedBox(height: 2),
+        pw.SizedBox(height: 1),
       ]);
 
   static pw.Widget _row(String label, String value,
