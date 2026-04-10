@@ -77,12 +77,12 @@ class BillPrinter {
                   style: const pw.TextStyle(fontSize: 8),
                   textAlign: pw.TextAlign.center,
                 ),
-                pw.SizedBox(height: 1.5),
+                pw.SizedBox(height: 0.5),
 
                 // Phone numbers — 2 per row
                 ...phoneRows,
 
-                pw.SizedBox(height: 2),
+                pw.SizedBox(height: 1),
                 _divider(),
 
                 // Customer info
@@ -131,7 +131,7 @@ class BillPrinter {
 
                 // Items
                 ...cart.items.map((item) => pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+                      padding: const pw.EdgeInsets.symmetric(vertical: 0.5),
                       child: pw.Row(
                         children: [
                           pw.Expanded(
@@ -161,7 +161,7 @@ class BillPrinter {
                     bold: true, fontSize: 11),
                 _divider(),
 
-                pw.SizedBox(height: 2),
+                pw.SizedBox(height: 1),
                 pw.Text(
                   AppConstants.thankYouMsg,
                   style:
