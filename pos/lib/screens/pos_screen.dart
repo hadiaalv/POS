@@ -36,30 +36,49 @@ class POSScreen extends StatelessWidget {
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.restaurant, color: Colors.white, size: 18),
+              child:
+                  const Icon(Icons.restaurant, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
             const Text(AppConstants.shopName,
                 style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.4)),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    letterSpacing: 1.4)),
           ],
         ),
         actions: [
-          _NavBtn(icon: Icons.history, label: 'Orders',
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const OrderHistoryScreen()))),
-          _NavBtn(icon: Icons.people_alt_outlined, label: 'Customers',
+          _NavBtn(
+              icon: Icons.history,
+              label: 'Orders',
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const OrderHistoryScreen()))),
+          _NavBtn(
+              icon: Icons.people_alt_outlined,
+              label: 'Customers',
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const CustomersScreen()))),
-          _NavBtn(icon: Icons.delivery_dining, label: 'Riders',
+          _NavBtn(
+              icon: Icons.delivery_dining,
+              label: 'Riders',
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const RidersScreen()))),
-          _NavBtn(icon: Icons.bar_chart_rounded, label: 'Reports',
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SalesReportScreen()))),
-          _NavBtn(icon: Icons.menu_book_outlined, label: 'Menu',
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const MenuManagementScreen()))),
+          _NavBtn(
+              icon: Icons.bar_chart_rounded,
+              label: 'Reports',
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const SalesReportScreen()))),
+          _NavBtn(
+              icon: Icons.menu_book_outlined,
+              label: 'Menu',
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const MenuManagementScreen()))),
           const SizedBox(width: 8),
         ],
       ),
@@ -79,14 +98,19 @@ class POSScreen extends StatelessWidget {
             child: Column(children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 color: const Color(AppConstants.primaryColorValue),
                 child: const Row(children: [
-                  Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 18),
+                  Icon(Icons.shopping_bag_outlined,
+                      color: Colors.white, size: 18),
                   SizedBox(width: 8),
                   Text('Current Order',
-                      style: TextStyle(color: Colors.white, fontSize: 15,
-                          fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5)),
                 ]),
               ),
               const Expanded(child: _CartList()),
@@ -119,8 +143,11 @@ class _NavBtn extends StatelessWidget {
         child: Row(children: [
           Icon(icon, size: 17, color: Colors.white70),
           const SizedBox(width: 5),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 13,
-              fontWeight: FontWeight.w500)),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500)),
         ]),
       ),
     );
@@ -137,18 +164,22 @@ class _CategoryBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         child: Row(children: [
           Text('Category:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
                   color: Colors.grey.shade600)),
           const SizedBox(width: 8),
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: menu.categories.map((cat) => CategoryButton(
-                  label: cat.name,
-                  isSelected: menu.selectedCategory?.id == cat.id,
-                  onTap: () => menu.selectCategory(cat),
-                )).toList(),
+                children: menu.categories
+                    .map((cat) => CategoryButton(
+                          label: cat.name,
+                          isSelected: menu.selectedCategory?.id == cat.id,
+                          onTap: () => menu.selectCategory(cat),
+                        ))
+                    .toList(),
               ),
             ),
           ),
@@ -164,27 +195,35 @@ class _MenuGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer2<MenuProvider, CartProvider>(
       builder: (context, menu, cart, _) {
-        if (menu.isLoading) return const Center(child: CircularProgressIndicator());
+        if (menu.isLoading)
+          return const Center(child: CircularProgressIndicator());
         if (menu.currentItems.isEmpty) {
-          return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.no_food_outlined, size: 48, color: Colors.grey.shade300),
-              const SizedBox(height: 8),
-              const Text('No items in this category.', style: TextStyle(color: Colors.grey)),
-            ]));
+          return Center(
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                Icon(Icons.no_food_outlined,
+                    size: 48, color: Colors.grey.shade300),
+                const SizedBox(height: 8),
+                const Text('No items in this category.',
+                    style: TextStyle(color: Colors.grey)),
+              ]));
         }
         return GridView.builder(
           padding: const EdgeInsets.all(10),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 170, mainAxisExtent: 88,
-            crossAxisSpacing: 8, mainAxisSpacing: 8,
+            maxCrossAxisExtent: 170,
+            mainAxisExtent: 88,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
           ),
           itemCount: menu.currentItems.length,
           itemBuilder: (context, index) {
             final item = menu.currentItems[index];
             return MenuItemCard(
               item: item,
-              onTap: () => cart.addItem(item, menu.selectedCategory?.name ?? ''),
+              onTap: () =>
+                  cart.addItem(item, menu.selectedCategory?.name ?? ''),
             );
           },
         );
@@ -199,19 +238,24 @@ class _CartList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(builder: (context, cart, _) {
       if (cart.items.isEmpty) {
-        return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.shopping_bag_outlined, size: 52, color: Colors.grey.shade200),
-            const SizedBox(height: 10),
-            Text('No items added', style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
-            const SizedBox(height: 4),
-            Text('Tap items on the left to add', style: TextStyle(color: Colors.grey.shade300, fontSize: 12)),
-          ]));
+        return Center(
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.shopping_bag_outlined,
+              size: 52, color: Colors.grey.shade200),
+          const SizedBox(height: 10),
+          Text('No items added',
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+          const SizedBox(height: 4),
+          Text('Tap items on the left to add',
+              style: TextStyle(color: Colors.grey.shade300, fontSize: 12)),
+        ]));
       }
       return ListView.separated(
         padding: const EdgeInsets.all(6),
         itemCount: cart.items.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+        separatorBuilder: (_, __) =>
+            Divider(height: 1, color: Colors.grey.shade100),
         itemBuilder: (context, index) {
           final item = cart.items[index];
           return CartItemRow(
@@ -234,7 +278,8 @@ class _OrderSummary extends StatefulWidget {
 
 class _OrderSummaryState extends State<_OrderSummary> {
   final _deliveryCtrl = TextEditingController();
-  final _notesCtrl    = TextEditingController();
+  final _notesCtrl = TextEditingController();
+  int _copies = 2;
 
   @override
   void dispose() {
@@ -254,7 +299,7 @@ class _OrderSummaryState extends State<_OrderSummary> {
     }
     try {
       await cart.placeOrder();
-      await BillPrinter.printBill(cart);
+      await BillPrinter.printBill(cart, copies: _copies);
       _deliveryCtrl.clear();
       _notesCtrl.clear();
       cart.clearCart();
@@ -267,7 +312,8 @@ class _OrderSummaryState extends State<_OrderSummary> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error: $e'), backgroundColor: Colors.red,
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
         ));
       }
     }
@@ -278,14 +324,17 @@ class _OrderSummaryState extends State<_OrderSummary> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07),
-            offset: const Offset(0, -2), blurRadius: 8)],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              offset: const Offset(0, -2),
+              blurRadius: 8)
+        ],
       ),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-
           Selector<CartProvider, ({int qty, double subtotal, bool hasItems})>(
             selector: (_, c) => (
               qty: c.items.fold(0, (s, i) => s + i.quantity),
@@ -299,71 +348,95 @@ class _OrderSummaryState extends State<_OrderSummary> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Text('${d.qty} items',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade500)),
                   ),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('Subtotal', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-                  Text('Rs. ${d.subtotal.toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                ]),
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Subtotal',
+                          style: TextStyle(
+                              fontSize: 13, color: Colors.grey.shade600)),
+                      Text('Rs. ${d.subtotal.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600)),
+                    ]),
               ],
             ),
           ),
-
           const SizedBox(height: 8),
-
           Row(children: [
-            Text('Delivery:', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+            Text('Delivery:',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
             const SizedBox(width: 8),
             Expanded(
               child: TextField(
                 controller: _deliveryCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   isDense: true,
                   hintText: '0',
                   prefixText: 'Rs. ',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   border: const OutlineInputBorder(),
-                  filled: true, fillColor: Colors.grey.shade50,
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
                 ),
-                onChanged: (v) =>
-                    context.read<CartProvider>().setDeliveryCharges(double.tryParse(v) ?? 0),
+                onChanged: (v) => context
+                    .read<CartProvider>()
+                    .setDeliveryCharges(double.tryParse(v) ?? 0),
               ),
             ),
           ]),
-
           const SizedBox(height: 8),
-
           TextField(
             controller: _notesCtrl,
             decoration: InputDecoration(
               isDense: true,
               hintText: 'Order notes (optional)...',
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               border: const OutlineInputBorder(),
-              filled: true, fillColor: Colors.grey.shade50,
+              filled: true,
+              fillColor: Colors.grey.shade50,
             ),
             onChanged: (v) => context.read<CartProvider>().setNotes(v),
           ),
-
-          const Divider(height: 14),
-
-          Selector<CartProvider, double>(
-            selector: (_, c) => c.total,
-            builder: (_, total, __) => Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('TOTAL', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                Text('Rs. ${total.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
-                        color: Color(AppConstants.primaryColorValue))),
-              ],
-            ),
-          ),
-
           const SizedBox(height: 10),
-
+          Row(
+            children: [
+              const Text('Copies:',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.grey.shade50,
+                ),
+                child: DropdownButton<int>(
+                  value: _copies,
+                  underline: const SizedBox.shrink(),
+                  items: [1, 2, 3, 4, 5]
+                      .map((value) => DropdownMenuItem<int>(
+                            value: value,
+                            child: Text('$value'),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _copies = value);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 14),
           Row(children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.delete_outline, size: 16),
@@ -389,7 +462,8 @@ class _OrderSummaryState extends State<_OrderSummary> {
                   label: const Text('Print Bill'),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(0, 46),
-                    backgroundColor: const Color(AppConstants.primaryColorValue),
+                    backgroundColor:
+                        const Color(AppConstants.primaryColorValue),
                     foregroundColor: Colors.white,
                     elevation: 0,
                   ),
