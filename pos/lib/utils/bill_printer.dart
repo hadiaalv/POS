@@ -8,7 +8,6 @@ import 'constants.dart';
 
 class BillPrinter {
   static Future<void> printBill(CartProvider cart, {int copies = 2}) async {
-    final pdf = pw.Document();
     final now = DateTime.now();
     final dateStr = DateFormat('dd/MM/yyyy hh:mm a').format(now);
     final int safeCopies = copies < 1 ? 1 : copies;
@@ -56,6 +55,7 @@ class BillPrinter {
     }
 
     for (var copyIndex = 0; copyIndex < safeCopies; copyIndex++) {
+      final pdf = pw.Document();
       pdf.addPage(
         pw.Page(
           pageFormat: pageFormat,
@@ -173,12 +173,18 @@ class BillPrinter {
           },
         ),
       );
-    }
 
-    await Printing.layoutPdf(
-      onLayout: (_) async => pdf.save(),
-      name: 'DKFoods_Bill_${DateFormat('yyyyMMdd_HHmmss').format(now)}',
-    );
+      await Printing.layoutPdf(
+        onLayout: (_) async => pdf.save(),
+        name:
+            'DKFoods_Bill_${DateFormat('yyyyMMdd_HHmmss').format(now)}_${copyIndex + 1}',
+      );
+
+      // Delay between prints if not the last copy
+      if (copyIndex < safeCopies - 1) {
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    }
   }
 
   static pw.Widget _divider() => pw.Column(children: [
