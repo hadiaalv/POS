@@ -1,4 +1,5 @@
 // lib/utils/bill_printer.dart
+
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -7,25 +8,28 @@ import '../providers/cart_provider.dart';
 import 'constants.dart';
 
 class BillPrinter {
-  static Future<void> printBill(CartProvider cart, {int copies = 2}) async {
+  static Future<void> printBill(CartProvider cart) async {
     final now = DateTime.now();
     final dateStr = DateFormat('dd/MM/yyyy hh:mm a').format(now);
-    final int safeCopies = copies < 1 ? 1 : copies;
-    final double pageHeightMm = 90 + cart.items.length * 5;
+
+    // Dynamic height calculation
+    final double pageHeightMm = 85 + (cart.items.length * 5);
+
     final pageFormat = PdfPageFormat(
-      80 * PdfPageFormat.mm,
+      2.8 * PdfPageFormat.inch,
       pageHeightMm * PdfPageFormat.mm,
-      marginAll: 1.5 * PdfPageFormat.mm,
+      marginLeft: 0.7 * PdfPageFormat.mm,
+      marginRight: 0.7 * PdfPageFormat.mm,
+      marginTop: 2 * PdfPageFormat.mm,
+      marginBottom: 2 * PdfPageFormat.mm,
     );
 
-    // Split into individual numbers
     final phoneLines = AppConstants.shopPhone
         .split('|')
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
 
-    // Pair them up: [0,1] on row 1, [2,3] on row 2
     final List<pw.Widget> phoneRows = [];
     for (int i = 0; i < phoneLines.length; i += 2) {
       final left = phoneLines[i];
@@ -34,167 +38,150 @@ class BillPrinter {
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.center,
           children: [
-            pw.Expanded(
-              child: pw.Text(
-                left,
-                style: const pw.TextStyle(fontSize: 8),
-                textAlign: pw.TextAlign.center,
-              ),
-            ),
-            if (right.isNotEmpty)
-              pw.Expanded(
-                child: pw.Text(
-                  right,
-                  style: const pw.TextStyle(fontSize: 8),
-                  textAlign: pw.TextAlign.center,
-                ),
-              ),
+            pw.Text(left, style: const pw.TextStyle(fontSize: 7.5)),
+            if (right.isNotEmpty) ...[
+              pw.SizedBox(width: 6), // Reduced spacing between numbers
+              pw.Text(right, style: const pw.TextStyle(fontSize: 7.5)),
+            ]
           ],
         ),
       );
     }
 
-    for (var copyIndex = 0; copyIndex < safeCopies; copyIndex++) {
-      final pdf = pw.Document();
-      pdf.addPage(
-        pw.Page(
-          pageFormat: pageFormat,
-          build: (context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                // Shop name
-                pw.Text(
-                  AppConstants.shopName,
-                  style: pw.TextStyle(
-                      fontSize: 16, fontWeight: pw.FontWeight.bold),
-                ),
-                pw.SizedBox(height: 1),
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.Page(
+        pageFormat: pageFormat,
+        build: (context) {
+          return pw.Center(
+            child: pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 0.7 * PdfPageFormat.mm),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    AppConstants.shopName,
+                    style: pw.TextStyle(
+                        fontSize: 15, fontWeight: pw.FontWeight.bold),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 1),
+                  pw.Text(
+                    AppConstants.shopAddress,
+                    style: const pw.TextStyle(fontSize: 7.5),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 1),
 
-                // Address
-                pw.Text(
-                  AppConstants.shopAddress,
-                  style: const pw.TextStyle(fontSize: 8),
-                  textAlign: pw.TextAlign.center,
-                ),
-                pw.SizedBox(height: 0.5),
+                  ...phoneRows,
 
-                // Phone numbers — 2 per row
-                ...phoneRows,
+                  _divider(),
 
-                pw.SizedBox(height: 1),
-                _divider(),
+                  // Customer details - compact and centered
+                  pw.Text('Date: $dateStr',
+                      style: const pw.TextStyle(fontSize: 7.5)),
+                  pw.Text('Name: ${cart.customerName}',
+                      style: const pw.TextStyle(fontSize: 7.5)),
+                  pw.Text('Phone: ${cart.customerPhone}',
+                      style: const pw.TextStyle(fontSize: 7.5)),
+                  if (cart.customerAddress.trim().isNotEmpty)
+                    pw.Text('Addr: ${cart.customerAddress}',
+                        style: const pw.TextStyle(fontSize: 7.5),
+                        textAlign: pw.TextAlign.center),
 
-                // Customer info
-                pw.Align(
-                  alignment: pw.Alignment.centerLeft,
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  _divider(),
+
+                  // Table Header - Flex adjusted for tight fit
+                  pw.Row(
                     children: [
-                      pw.Text('Date: $dateStr',
-                          style: const pw.TextStyle(fontSize: 8)),
-                      pw.Text('Name: ${cart.customerName}',
-                          style: const pw.TextStyle(fontSize: 8)),
-                      pw.Text('Phone: ${cart.customerPhone}',
-                          style: const pw.TextStyle(fontSize: 8)),
-                      if (cart.customerAddress.trim().isNotEmpty)
-                        pw.Text('Address: ${cart.customerAddress}',
-                            style: const pw.TextStyle(fontSize: 8)),
+                      pw.Expanded(
+                          flex: 4,
+                          child: pw.Text('Item',
+                              style: pw.TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: pw.FontWeight.bold))),
+                      pw.Expanded(
+                          flex: 2,
+                          child: pw.Text('Qty',
+                              style: pw.TextStyle(
+                                  fontSize: 8, fontWeight: pw.FontWeight.bold),
+                              textAlign: pw.TextAlign.center)),
+                      pw.Expanded(
+                          flex: 2,
+                          child: pw.Text('Total',
+                              style: pw.TextStyle(
+                                  fontSize: 8, fontWeight: pw.FontWeight.bold),
+                              textAlign: pw.TextAlign.right)),
                     ],
                   ),
-                ),
-                _divider(),
+                  pw.SizedBox(height: 1),
 
-                // Items header
-                pw.Row(
-                  children: [
-                    pw.Expanded(
-                        flex: 5,
-                        child: pw.Text('Item',
-                            style: pw.TextStyle(
-                                fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                    pw.Expanded(
-                        flex: 2,
-                        child: pw.Text('Qty',
-                            style: pw.TextStyle(
-                                fontSize: 8, fontWeight: pw.FontWeight.bold),
-                            textAlign: pw.TextAlign.center)),
-                    pw.Expanded(
-                        flex: 3,
-                        child: pw.Text('Total',
-                            style: pw.TextStyle(
-                                fontSize: 8, fontWeight: pw.FontWeight.bold),
-                            textAlign: pw.TextAlign.right)),
-                  ],
-                ),
-                _divider(),
+                  // Item List
+                  ...cart.items.map((item) => pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(vertical: 0.5),
+                        child: pw.Row(
+                          children: [
+                            pw.Expanded(
+                                flex: 4,
+                                child: pw.Text(item.name,
+                                    style: const pw.TextStyle(fontSize: 7.5),
+                                    softWrap: true,
+                                    overflow: pw.TextOverflow.clip)),
+                            pw.Expanded(
+                                flex: 2,
+                                child: pw.Text('${item.quantity}',
+                                    style: const pw.TextStyle(fontSize: 7.5),
+                                    textAlign: pw.TextAlign.center)),
+                            pw.Expanded(
+                                flex: 2,
+                                child: pw.Text(item.total.toStringAsFixed(0),
+                                    style: const pw.TextStyle(fontSize: 7.5),
+                                    textAlign: pw.TextAlign.right)),
+                          ],
+                        ),
+                      )),
 
-                // Items
-                ...cart.items.map((item) => pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(vertical: 0.5),
-                      child: pw.Row(
-                        children: [
-                          pw.Expanded(
-                              flex: 5,
-                              child: pw.Text(item.name,
-                                  style: const pw.TextStyle(fontSize: 8))),
-                          pw.Expanded(
-                              flex: 2,
-                              child: pw.Text('${item.quantity}',
-                                  style: const pw.TextStyle(fontSize: 8),
-                                  textAlign: pw.TextAlign.center)),
-                          pw.Expanded(
-                              flex: 3,
-                              child: pw.Text(item.total.toStringAsFixed(0),
-                                  style: const pw.TextStyle(fontSize: 8),
-                                  textAlign: pw.TextAlign.right)),
-                        ],
-                      ),
-                    )),
+                  _divider(),
 
-                _divider(),
-                _row('Subtotal', 'Rs. ${cart.subtotal.toStringAsFixed(0)}'),
-                _row('Delivery',
-                    'Rs. ${cart.deliveryCharges.toStringAsFixed(0)}'),
-                pw.SizedBox(height: 1),
-                _row('TOTAL', 'Rs. ${cart.total.toStringAsFixed(0)}',
-                    bold: true, fontSize: 11),
-                _divider(),
+                  _row('Subtotal', 'Rs. ${cart.subtotal.toStringAsFixed(0)}'),
+                  _row('Delivery',
+                      'Rs. ${cart.deliveryCharges.toStringAsFixed(0)}'),
+                  pw.SizedBox(height: 1),
+                  _row('TOTAL', 'Rs. ${cart.total.toStringAsFixed(0)}',
+                      bold: true, fontSize: 10),
 
-                pw.SizedBox(height: 1),
-                pw.Text(
-                  AppConstants.thankYouMsg,
-                  style:
-                      pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-                ),
-                pw.SizedBox(height: 4),
-              ],
-            );
-          },
-        ),
-      );
+                  _divider(),
 
-      await Printing.layoutPdf(
-        onLayout: (_) async => pdf.save(),
-        name:
-            'DKFoods_Bill_${DateFormat('yyyyMMdd_HHmmss').format(now)}_${copyIndex + 1}',
-      );
+                  pw.Text(
+                    AppConstants.thankYouMsg,
+                    style: pw.TextStyle(
+                        fontSize: 8, fontWeight: pw.FontWeight.bold),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 5),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
 
-      // Delay between prints if not the last copy
-      if (copyIndex < safeCopies - 1) {
-        await Future.delayed(const Duration(seconds: 2));
-      }
-    }
+    await Printing.layoutPdf(
+      onLayout: (_) async => pdf.save(),
+      name: 'Bill_${DateFormat('yyyyMMdd_HHmmss').format(now)}',
+    );
   }
 
-  static pw.Widget _divider() => pw.Column(children: [
-        pw.SizedBox(height: 1),
-        pw.Divider(thickness: 0.5),
-        pw.SizedBox(height: 1),
-      ]);
+  static pw.Widget _divider() => pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
+        child: pw.Divider(thickness: 0.5),
+      );
 
   static pw.Widget _row(String label, String value,
-      {bool bold = false, double fontSize = 8}) {
+      {bool bold = false, double fontSize = 7.5}) {
     final style = bold
         ? pw.TextStyle(fontSize: fontSize, fontWeight: pw.FontWeight.bold)
         : pw.TextStyle(fontSize: fontSize);

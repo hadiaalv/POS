@@ -279,7 +279,7 @@ class _OrderSummary extends StatefulWidget {
 class _OrderSummaryState extends State<_OrderSummary> {
   final _deliveryCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
-  int _copies = 2;
+  int _copies = 1;
 
   @override
   void dispose() {
@@ -299,7 +299,7 @@ class _OrderSummaryState extends State<_OrderSummary> {
     }
     try {
       await cart.placeOrder();
-      await BillPrinter.printBill(cart, copies: _copies);
+      await BillPrinter.printBill(cart);
       _deliveryCtrl.clear();
       _notesCtrl.clear();
       cart.clearCart();
